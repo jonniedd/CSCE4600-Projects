@@ -265,9 +265,67 @@ func SJFSchedule(w io.Writer, title string, processes []Process) {
 
 }
 
-//
-//func RRSchedule(w io.Writer, title string, processes []Process) { }
-//report average turnaround time, average waiting time, and average throughput.
+func RRSchedule(w io.Writer, title string, processes []Process) {
+	//report average turnaround time, average waiting time, and average throughput.
+	var (
+		serviceTime     float64
+		totalWait       float64
+		totalTurnaround float64
+		lastCompletion  float64
+		waitingTime     int64
+
+		//	current 		int64
+		//	remaining 		int64
+
+		schedule = make([][]string, len(processes))
+		gantt    = make([]TimeSlice, 0)
+		queue    = make([][]Process, 0)
+	)
+
+	for i := range processes {
+
+		if len(queue) == 0 {
+			waitingTime = int64(serviceTime) - processes[i].ArrivalTime
+		}
+		totalWait += float64(waitingTime)
+
+		start := waitingTime + processes[i].ArrivalTime
+
+		turnAround := processes[i].BurstDuration + waitingTime
+		totalTurnaround += float64(turnAround)
+
+		completion := processes[i].BurstDuration + processes[i].ArrivalTime + waitingTime
+		lastCompletion = float64(completion)
+
+		schedule[i] = []string{
+			fmt.Sprint(processes[i].ProcessID),
+			fmt.Sprint(processes[i].Priority),
+			fmt.Sprint(processes[i].BurstDuration),
+			fmt.Sprint(processes[i].ArrivalTime),
+			fmt.Sprint(waitingTime),
+			fmt.Sprint(turnAround),
+			fmt.Sprint(completion),
+		}
+
+		serviceTime += float64(processes[i].BurstDuration)
+
+		gantt = append(gantt, TimeSlice{
+			PID:   processes[i].ProcessID,
+			Start: start,
+			Stop:  int64(serviceTime),
+		})
+	}
+
+	count := float64(len(processes))
+	aveWait := totalWait / count
+	aveTurnaround := totalTurnaround / count
+	aveThroughput := count / lastCompletion
+
+	outputTitle(w, title)
+	outputGantt(w, gantt)
+	outputSchedule(w, schedule, aveWait, aveTurnaround, aveThroughput)
+
+}
 
 //endregion
 
